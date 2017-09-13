@@ -1,8 +1,18 @@
 RSS GOSSIP
 ==========
 
-This is a very, very simple Python module to read the contents of an RSS feed and look for a key phrase.
+I have tried to use a very simple Python module to read the contents of an RSS feed and look for a key phrase using a C program.
+Using different process to search from different RSS feeds. A lot of system call is involved in the C code. 
 
+Using C:
+<output>
+./read_feed 'Assam'
+Assam Times
+
+Camp for Assam-Meghalaya Sikhs
+
+Assam bandh total, ends peacefully
+</output>
 For example, to look for stories about 'Snooki' in the MSN Entertainment feed, you can do this:
 
  export RSS_FEED=http://www.msn.com/rss/MsnEntertainment.aspx

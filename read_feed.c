@@ -6,88 +6,118 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#define LINK_S 512
 //#define debug
+#define BLOCK 512
+#define TABS 3
 #define linkSource "./links"
+/*	Methods Declaration */
 void fire(const char* msg)
 {
-    perror(msg);
-    exit(1);
+    perror(msg), exit(1);
 }
-int loadMyFeeds(char*** array)
-{
-    FILE* inp = fopen(linkSource,"r");
-    char link[LINK_S];
-    size_t size = 10, index = 0;
-    *array = (char**)calloc(size, LINK_S);
-    if(inp == NULL)
-        fire("Unable to reads link source file");
-    while(fgets(link,LINK_S,inp))
-    {
+void* loadMyFeeds(void*);	//Reads the links from the sourceFile using threads
+void clean(char**, int);	//Memorymanagement is very important
 
-        if(index==size)
-        {
-            size<<=1;
-            *array = (char**)realloc(*array,size*LINK_S);
-        }
-        (*array)[index++] = strdup(link);
-    }
-    return index;
-}
 int main(int argc, char**argv)
 {
-    char**feeds = NULL;
-    char str[LINK_S];
+    char **feeds = NULL, str[BLOCK];
     bool found = false;
-    if(argc==1)
+	int number, ch_id, ch_status, filedes[2], tabs = 0, input, output;
+    
+	// Search Pharase is important
+	if (argc == 1)
         fire("Usage: ./read_feed [searchkey]");
-    int number = loadMyFeeds(&feeds), ch_id,ch_status, fds[2];
-    char *args[] ={"/usr/bin/python","./rssgossip.py","-u",argv[1],NULL}, 
-        *env[] = {NULL,NULL};
-    if(pipe(fds)==-1)
+	
+	//	Threads to read links from file
+	pthread_t fileThread;
+	pthread_create(&fileThread, NULL, loadMyFeeds, (void*)&feeds);
+    pthread_join(fileThread, (void*)&number);
+
+	char *args[] = {"/usr/bin/python", "./rssgossip.py", "-u", argv[1], NULL}, 
+         *env[] = {NULL, NULL};
+    
+	if (pipe(filedes) == -1)	// InterProcess Communication
         fire("Unable to create pipe");
-    for(int i = 0; i < number; ++i)
+    // For better understanding
+	input = filedes[0], output = filedes[1];
+	
+	for(int i = 0; i < number; ++i)
     {
         #ifdef debug
-            printf("Using the FEED: %s\n",feeds[i]);
+            printf("Using the FEED: %s\n",feeds<:i:>);
         #endif
-        asprintf(&env, "RSS_FEED=%s", feeds[i]);
-        if( (ch_id = fork()) == 0)
+		asprintf(&env, "RSS_FEED=%s", feeds<:i:>);	//	Creating environment variable
+        
+        if ((ch_id = fork()) == 0)  //Child Process
         {
-            close(fds[0]);
-            dup2(fds[1],1);
-            if(execve(args[0], args, env) == -1)
-                fire("Unable to continue");
+            close(input);
+            dup2(output, fileno(stdout));
+			// Calling pyhton API
+            if(execve(args<:0:>, args, env) == -1)
+                fire("Unable to continue...");
         }
         
-		waitpid(ch_id,&ch_status,0);			//Wait for child process to read the feed
-        close(fds[1]);							
-        dup2(fds[0],0);						   	//Direct's stdin to child's output
-        
-        while(fgets(str, LINK_S, stdin))
+		waitpid(ch_id, &ch_status, 0);			//Wait for child process to read the feed
+        int exit_status = WEXITSTATUS(ch_status);
+		#ifdef debug  
+       		printf("Process returned with %i\n", exit_status);
+        #endif
+       	if(exit_status == 1)
+			continue;
+
+		close(output);							
+        FILE * news_buf = fdopen(input,"r");
+		//dup2(input, fileno(stdin));				//Direct's stdin to child's output
+        while (fgets(str, BLOCK, news_buf) != NULL)
         {
-            if(str[0]=='\t')
+			puts(str);
+            if (str[0] == '\t')
             {
                 #ifdef debug
-					fprintf(stdout,"Found Data at %s.Opening it in the brower\n",str);
+					fprintf(stdout, "Found Data at %s.Opening it in the brower\n", str);
                 #endif
 				char* browse = NULL;
-                asprintf(&browse,"open %s",str);
-                system(browse);
+                asprintf(&browse, "open %s", str);
+                //system(browse);
 				free(browse);
-                found = true;
-                break;
+                ++tabs;
+            }
+            if(tabs==TABS)
+            {
+                return 0;
             }
         }
-        if(found)
-            return 0;
-        #ifdef debug  
-            printf("Process returned %i\n",WEXITSTATUS(ch_status));
-        #endif
+       
     }
-    if(!found)
-        puts("Unable to find news Today ;(. Try to add more RSS_FEED links");
+    puts("Unable to find news Today :(  Try to add more RSS_FEED to the file links");
     return 0;
+}
+void* loadMyFeeds(void* args)
+{
+	char ***array = (char***) args;
+    FILE* inp = fopen(linkSource,"r");
+    if (inp == NULL)
+        fire("Unable to reads link source file");
+    
+    char link[BLOCK];
+    size_t size = 8, index = 0;
+    *array = (char**) calloc(size, BLOCK);
+    
+    while(fgets(link, BLOCK, inp) !=NULL)
+    {
+        if(index == size)
+        {
+            size <<= 1;
+            *array = (char**) realloc(*array, size * BLOCK);
+        }
+        /*
+			making a copy of string in heap 
+			and saving it to array
+		*/
+        array[0][index++] = strdup(link);
+    }
+	return (void*)index;
 }

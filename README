@@ -4,19 +4,10 @@ RSS GOSSIP
 I have tried to use a very simple Python module to read the contents of an RSS feed and look for a key phrase using a C program.
 Using different process to search from different RSS feeds. A lot of system call is involved in the C code. 
 
-Using C:
-<output>
-./read_feed 'Assam'
-Assam Times
-
-Camp for Assam-Meghalaya Sikhs
-
-Assam bandh total, ends peacefully
-</output>
 For example, to look for stories about 'Snooki' in the MSN Entertainment feed, you can do this:
 
- export RSS_FEED=http://www.msn.com/rss/MsnEntertainment.aspx
- ./rssgossip.py 'Snooki' 
+1. create a file named links and paste http://www.msn.com/rss/MsnEntertainment.aspx in it.
+2. ./rss_feed 'Snooki'
 
 Why does the script configure the feed using an environment variable? Because this module was written as 
 an example program for the book Head First C (http://shop.oreilly.com/product/0636920015482.do). The book
@@ -29,3 +20,17 @@ The search string can be a regular expression. So:
  ./rssgossip.py 'lohan|britney|kardashian'
 
 will find stories containing any of the three names.
+License
+=====
+    rss_feed - Copyright (c) Santosh Kumar Shaw 2017
+
+    rss_feed is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    HoloIRC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with devChat.  If not, see <http://www.gnu.org/licenses/>.

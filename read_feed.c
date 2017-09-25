@@ -1,6 +1,10 @@
 /*
  * @author Santosh Kumar Shaw (devsks)
  * @quote "Code like there's no tommorow!"
+ *
+ *	This command-line tools helps users to search information
+ *	about a pirticular topic with the help of rss feed links
+ *	by using the python module API in the backend.
  */
 #include <stdio.h>
 #include <string.h>
@@ -24,7 +28,6 @@ void clean(char**, int);	//Memorymanagement is very important
 int main(int argc, char**argv)
 {
     char **feeds = NULL, str[BLOCK];
-    bool found = false;
 	int number, ch_id, ch_status, filedes[2], tabs = 0, input, output;
     
 	// Search Pharase is important
@@ -49,9 +52,9 @@ int main(int argc, char**argv)
         #ifdef debug
             printf("Using the FEED: %s\n",feeds<:i:>);
         #endif
-		asprintf(&env, "RSS_FEED=%s", feeds<:i:>);	//	Creating environment variable
+		asprintf((char**)&env, "RSS_FEED=%s", feeds<:i:>);	//	Creating environment variable
         
-        if ((ch_id = fork()) == 0)  //Child Process
+        if ((ch_id = fork()) == 0)  // one Child Process for every RSS Feeds
         {
             close(input);
             dup2(output, fileno(stdout));
